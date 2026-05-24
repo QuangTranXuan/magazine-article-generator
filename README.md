@@ -86,6 +86,8 @@ The app handles 14+ unhappy paths including:
 
 See [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) for the full architecture, trade-offs, and scope decisions.
 
+See [CODE-REVIEW.md](./CODE-REVIEW.md) for the comprehensive code review covering architecture, security, code quality, and silent failure analysis.
+
 ## Project Structure
 
 ```
