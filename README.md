@@ -44,8 +44,9 @@ npm install
 # Copy env file and fill in your values
 cp .env.example .env.local
 
-# Run the database migration
+# Run the database migrations
 psql $DATABASE_URL -f migrations/001_initial.sql
+psql $DATABASE_URL -f migrations/002_constraints_and_trigger.sql
 
 # Start dev server
 npm run dev
@@ -87,6 +88,8 @@ The app handles 14+ unhappy paths including:
 See [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) for the full architecture, trade-offs, and scope decisions.
 
 See [CODE-REVIEW.md](./CODE-REVIEW.md) for the comprehensive code review covering architecture, security, code quality, and silent failure analysis.
+
+See [ISSUES-AND-FIXES.md](./ISSUES-AND-FIXES.md) for the technical issues identified during review (token handling, concurrent edits, retry logic, DB modelling) and how they were resolved.
 
 ## Project Structure
 

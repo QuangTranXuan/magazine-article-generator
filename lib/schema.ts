@@ -91,5 +91,6 @@ export const ArticlePatchSchema = z.object({
   ethics_notes: z.string().nullable().optional(),
   key_facts: KeyFactsSchema.nullable().optional(),
   status: z.enum(["draft", "published"]).optional(),
+  expected_updated_at: z.string().datetime().optional(),
 });
 export type ArticlePatch = z.infer<typeof ArticlePatchSchema>;

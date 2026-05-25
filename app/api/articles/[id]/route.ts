@@ -50,7 +50,7 @@ export async function PATCH(
       );
     }
 
-    const patch = parseResult.data;
+    const { expected_updated_at, ...patch } = parseResult.data;
 
     // Check article exists and get current updated_at
     const existing = await query<{ updated_at: string }>(
@@ -64,15 +64,16 @@ export async function PATCH(
       );
     }
 
-    // Concurrent edit check
-    if (body.expected_updated_at) {
+    // Concurrent edit check — compare client's last-known timestamp against DB
+    if (expected_updated_at) {
       const dbTime = new Date(existing.rows[0].updated_at).getTime();
-      const clientTime = new Date(body.expected_updated_at).getTime();
+      const clientTime = new Date(expected_updated_at).getTime();
       if (dbTime > clientTime) {
         return NextResponse.json(
           {
             message: "This article was updated elsewhere. Reload to see the latest version.",
             code: "CONFLICT",
+            server_updated_at: existing.rows[0].updated_at,
           },
           { status: 409 }
         );

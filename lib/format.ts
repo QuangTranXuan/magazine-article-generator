@@ -1,4 +1,6 @@
 import type { QueryResultRow } from "pg";
+import { z } from "zod";
+import { BodySectionSchema, KeyFactsSchema, SourcesSchema, ConfidenceMapSchema } from "./schema";
 
 export interface ArticleRow extends QueryResultRow {
   id: string;
@@ -21,6 +23,12 @@ export interface ArticleRow extends QueryResultRow {
   updated_at: string;
 }
 
+function safeParseJsonb<T>(schema: z.ZodType<T>, value: unknown): T | null {
+  if (value === null || value === undefined) return null;
+  const result = schema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
 export function formatArticleRow(row: ArticleRow) {
   return {
     id: row.id,
@@ -29,13 +37,13 @@ export function formatArticleRow(row: ArticleRow) {
     raw_notes: row.raw_notes,
     filename: row.filename,
     hook: row.hook,
-    body_sections: row.body_sections,
+    body_sections: safeParseJsonb(z.array(BodySectionSchema), row.body_sections),
     best_for: row.best_for,
     not_for: row.not_for,
     ethics_notes: row.ethics_notes,
-    key_facts: row.key_facts,
-    sources: row.sources,
-    confidence: row.confidence,
+    key_facts: safeParseJsonb(KeyFactsSchema, row.key_facts),
+    sources: safeParseJsonb(SourcesSchema, row.sources),
+    confidence: safeParseJsonb(ConfidenceMapSchema, row.confidence),
     llm_model: row.llm_model,
     generation_error: row.generation_error,
     created_at: row.created_at,

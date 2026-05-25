@@ -37,6 +37,17 @@ export class FileTooLargeError extends AppError {
   }
 }
 
+export class InputTooLargeError extends AppError {
+  constructor(charCount: number, maxChars: number) {
+    super(
+      `Input is too long (${charCount.toLocaleString()} characters). Maximum is ${maxChars.toLocaleString()} characters (~${Math.round(maxChars / 5).toLocaleString()} words).`,
+      400,
+      "INPUT_TOO_LARGE"
+    );
+    this.name = "InputTooLargeError";
+  }
+}
+
 export class LLMTimeoutError extends AppError {
   constructor(message = "Article generation timed out. Please try again.") {
     super(message, 504, "LLM_TIMEOUT");

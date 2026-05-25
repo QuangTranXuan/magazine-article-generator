@@ -46,6 +46,8 @@ export default function ArticleEditor({ article: initial }: ArticleEditorProps) 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [lastKnownUpdatedAt, setLastKnownUpdatedAt] = useState(initial.updated_at);
+  const [hasConflict, setHasConflict] = useState(false);
 
   const isDirty = JSON.stringify(state) !== JSON.stringify(initial);
 
@@ -61,6 +63,7 @@ export default function ArticleEditor({ article: initial }: ArticleEditorProps) 
       not_for: state.not_for,
       ethics_notes: state.ethics_notes,
       key_facts: state.key_facts,
+      expected_updated_at: lastKnownUpdatedAt,
     };
 
     try {
@@ -70,19 +73,28 @@ export default function ArticleEditor({ article: initial }: ArticleEditorProps) 
         body: JSON.stringify(patch),
       });
 
+      if (res.status === 409) {
+        setHasConflict(true);
+        setSaveError("This article was updated elsewhere. Reload to see the latest version.");
+        return;
+      }
+
       if (!res.ok) {
         const data = await res.json();
         setSaveError(data.message || "Save failed.");
         return;
       }
 
+      const saved = await res.json();
+      setLastKnownUpdatedAt(saved.updated_at);
+      setHasConflict(false);
       setLastSaved(new Date().toLocaleTimeString());
     } catch {
       setSaveError("Network error. Your changes are unsaved.");
     } finally {
       setIsSaving(false);
     }
-  }, [state]);
+  }, [state, lastKnownUpdatedAt]);
 
   const rawNotes = state.raw_notes;
   const confidence = state.confidence;
@@ -109,12 +121,20 @@ export default function ArticleEditor({ article: initial }: ArticleEditorProps) 
           {saveError && (
             <span className="text-xs text-red-500">{saveError}</span>
           )}
+          {hasConflict && (
+            <button
+              onClick={() => window.location.reload()}
+              className="rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 active:scale-[0.98] transition-all"
+            >
+              Reload
+            </button>
+          )}
           <button
             onClick={handleSave}
-            disabled={isSaving || !isDirty}
+            disabled={isSaving || !isDirty || hasConflict}
             className={`
               rounded-xl px-5 py-2.5 text-sm font-semibold transition-all
-              ${isDirty
+              ${isDirty && !hasConflict
                 ? "bg-teal-600 text-white hover:bg-teal-700 active:scale-[0.98]"
                 : "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-600"
               }

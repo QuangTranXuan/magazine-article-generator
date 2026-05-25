@@ -6,6 +6,8 @@ import { LLMTimeoutError, LLMRateLimitError } from "./errors";
 const MODEL = "claude-sonnet-4-20250514";
 const TIMEOUT_MS = 60_000;
 const REPAIR_TIMEOUT_MS = 30_000;
+const MAX_RETRIES = 2;
+const INITIAL_RETRY_DELAY_MS = 2_000;
 
 const SYSTEM_PROMPT = `You are a magazine editor for Seek Sophie, a Singapore-based travel marketplace for handpicked experiences across Asia.
 Your task is to convert rough travel notes into a structured article JSON object.
@@ -94,9 +96,11 @@ function extractJSON(text: string): string {
   return text.trim();
 }
 
-async function callLLM(rawNotes: string): Promise<string> {
-  const anthropic = getClient();
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
+async function callLLMOnce(anthropic: Anthropic, rawNotes: string): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -131,6 +135,29 @@ async function callLLM(rawNotes: string): Promise<string> {
   }
 }
 
+async function callLLM(rawNotes: string): Promise<string> {
+  const anthropic = getClient();
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await callLLMOnce(anthropic, rawNotes);
+    } catch (error) {
+      const isRetryable =
+        error instanceof LLMTimeoutError || error instanceof LLMRateLimitError;
+      const isLastAttempt = attempt === MAX_RETRIES;
+
+      if (!isRetryable || isLastAttempt) {
+        throw error;
+      }
+
+      const delayMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+      await sleep(delayMs);
+    }
+  }
+
+  throw new LLMTimeoutError();
+}
+
 async function repairLLM(rawResponse: string, zodError: string): Promise<string> {
   const anthropic = getClient();
 
@@ -155,6 +182,11 @@ async function repairLLM(rawResponse: string, zodError: string): Promise<string>
 
     const textBlock = response.content.find((b) => b.type === "text");
     return textBlock?.text ?? "";
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new LLMTimeoutError("Repair pass timed out.");
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }

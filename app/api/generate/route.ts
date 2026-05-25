@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { generateArticle } from "@/lib/llm";
-import { toErrorResponse } from "@/lib/errors";
+import { toErrorResponse, InputTooLargeError } from "@/lib/errors";
 import { formatArticleRow, type ArticleRow } from "@/lib/format";
 
 export const maxDuration = 60;
+
+const MAX_RAW_TEXT_CHARS = 50_000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +24,10 @@ export async function POST(request: NextRequest) {
         { message: "filename is required.", code: "MISSING_FILENAME" },
         { status: 400 }
       );
+    }
+
+    if (raw_text.length > MAX_RAW_TEXT_CHARS) {
+      throw new InputTooLargeError(raw_text.length, MAX_RAW_TEXT_CHARS);
     }
 
     // Create article row with generating status
