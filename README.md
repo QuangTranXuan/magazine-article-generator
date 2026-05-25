@@ -91,6 +91,8 @@ See [CODE-REVIEW.md](./CODE-REVIEW.md) for the comprehensive code review coverin
 
 See [ISSUES-AND-FIXES.md](./ISSUES-AND-FIXES.md) for the technical issues identified during review (token handling, concurrent edits, retry logic, DB modelling) and how they were resolved.
 
+See [DETAILED-REVIEW.md](./DETAILED-REVIEW.md) for the deep-dive technical review covering database modelling, security vulnerabilities, and concurrency issues with prioritized remediation.
+
 ## Project Structure
 
 ```
